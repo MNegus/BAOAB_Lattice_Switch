@@ -4,7 +4,7 @@
  * Header file for all functions dealing with reading and storing relevant parameters needed. To use, create an input
  * file containing your desired parameters on separate lines in this order:
  *
- * dimensions              = Number of dimensions (i.e. 3 * N for N particles in three spatial dimensions)
+ * no_dimensions              = Number of dimensions (i.e. 3 * N for N particles in three spatial dimensions)
  * temp                    = Temperature given in units of kT (k = Boltzmann constant, T = temperature in Kelvin)
  * mass                    = Mass of particles (in kg)
  * timestep                = Timestep size between each BAOAB step (seconds)
@@ -36,7 +36,7 @@
 struct Parameters {
     /* Parameters to be read in from an input file */
     // Physical parameters
-    long dimensions; // Number of dimensions in the problem, i.e. 3N for N particles in 3 dimensions
+    long no_dimensions; // Number of no_dimensions in the problem, i.e. 3N for N particles in 3 no_dimensions
     double temp; // Temperature in units of energy, equal to kT, where k = Boltzmann constant, T = temperature in Kelvin
     double mass; // Mass of each particle
     double timestep; // Size of the timestep to be used in the BAOAB limit method
@@ -60,7 +60,7 @@ struct Parameters {
     /* Data structures and variables derived using the above parameters */
     double bin_width; // Width of each bin in the histogram
     double energy_shift; // Amount to shift lattice 1 by to make its minimum energy equal to lattice 0
-    double *normal_dist_arr; // Array of normally distributed numbers, length "dimensions", used in BAOAB steps
+    double *normal_dist_arr; // Array of normally distributed numbers, length "no_dimensions", used in BAOAB steps
 };
 typedef struct Parameters Parameters;
 
@@ -75,7 +75,7 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
     }
 
     // Reads the input file and stores them into the given parameters struct
-    read_long(input_file,   &params->dimensions);
+    read_long(input_file,   &params->no_dimensions);
     read_double(input_file, &params->temp);
     read_double(input_file, &params->mass);
     read_double(input_file, &params->timestep);
@@ -100,10 +100,8 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
     params->bin_width = (params->maximum_energy_diff - params->minimum_energy_diff) / params->no_bins;
     params->energy_shift = initial_energies[0] - initial_energies[1]; // The amount lattice 1 has to be shifted
 
-    params->normal_dist_arr = malloc(sizeof(double) * params->dimensions); // Ensure the seed has been set before this
-    for (long d=0; d < params->dimensions; d++) {
-        params->normal_dist_arr[d] = box_muller_rand(); // Set each element to be a normally distributed number
-    }
+    params->normal_dist_arr = malloc(sizeof(double) * params->no_dimensions); // Ensure the seed has been set before this
+    fill_arr_normal_dist(params->normal_dist_arr, params->no_dimensions); // Fills the array with normally distributed numbers
 }
 
 

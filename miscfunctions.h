@@ -47,4 +47,21 @@ double box_muller_rand(){
 }
 
 
+/* Fills an array with normally distributed values */
+void fill_arr_normal_dist(double *arr, long arr_length) {
+    for (long index = 0; index < arr_length; index++) {
+        arr[index] = box_muller_rand();
+    }
+}
+
+
+/* Swaps the pointers for two arrays */
+void swap_arr_pointers(double **array1, double **array2) {
+    double *temp;
+    temp = *array1;
+    *array1 = *array2;
+    *array2 = temp;
+}
+
+
 #endif //BAOAB_LATTICE_SWITCH_MISCFUNCTIONS_H
