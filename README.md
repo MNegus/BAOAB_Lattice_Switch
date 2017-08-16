@@ -10,3 +10,6 @@ https://arxiv.org/abs/1203.5428
 
 * **Multi-canonical sampling**: Computer simulation of fluid phase transitions - N. B. Wilding. 
 http://people.bath.ac.uk/pysnbw/reprints/ajp_69_1147.pdf
+
+**Makes use of**:
+* Mersenne-twister random number generation, courtesy of Makoto Matsumoto http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html
