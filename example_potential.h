@@ -9,11 +9,7 @@
 
 
 /* Example two dimensional potential */
-double potential(double *positions, Parameters *params) {
-    if (params->no_dimensions != 2) {
-        printf("This potential is only valid in two dimensions\n");
-        exit(1);
-    }
+double potential(double *positions) {
 
     double return_val;
 
@@ -29,11 +25,7 @@ double potential(double *positions, Parameters *params) {
 }
 
 /* Derivative of the example potential */
-void potential_deriv(double *deriv_arr, double *positions, Parameters *params) {
-    if (params->no_dimensions != 2) {
-        printf("This potential is only valid in two dimensions\n");
-        exit(1);
-    }
+void potential_deriv(double *deriv_arr, double *positions) {
 
 
     if (positions[0] < 10) {
