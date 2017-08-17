@@ -2,12 +2,13 @@
 #include "parameters.h"
 #include "example_potential.h"
 #include <float.h>
+#include <time.h>
 
 
 // NOT COMPLETED AT ALL
 /* Gets the energy a configuration of positions has in a given lattice */
 double get_energy(double *positions, Parameters *params) {
-    return potential(positions, params);
+    return potential(positions);
 }
 
 
@@ -26,7 +27,7 @@ double energy_difference(double *current_positions, double *other_positions, Par
 // NOT COMPLETED AT ALL
 /* Fills an array of forces with the forces on particles at given positions in a certain lattice */
 void get_forces(double *forces, double *positions, Parameters *params) {
-    potential_deriv(forces, positions, params);
+    potential_deriv(forces, positions);
 }
 
 
@@ -92,10 +93,9 @@ void calculate_energy_diff_range(double *lattice1_positions, double *lattice2_po
     }
 
     // Initialised arrays back to their original positions
-    swap_arr_pointers(&initial_lattice1_positions, &lattice1_positions);
-    free(initial_lattice1_positions);
-    swap_arr_pointers(&initial_lattice2_positions, &lattice2_positions);
-    free(initial_lattice2_positions);
+    copy_arr(initial_lattice1_positions, lattice1_positions, params->no_dimensions);
+    copy_arr(initial_lattice2_positions, lattice2_positions, params->no_dimensions);
+
 
     // Runs BAOAB stepping simulation on the second lattice
     for (long step_no = 0; step_no < params->tot_timesteps; step_no++) {
@@ -110,10 +110,43 @@ void calculate_energy_diff_range(double *lattice1_positions, double *lattice2_po
         BAOAB_limit(lattice2_positions, lattice1_positions, forces, params);
     }
 
+    swap_arr_pointers(&initial_lattice1_positions, &lattice1_positions);
+    free(initial_lattice1_positions);
+    swap_arr_pointers(&initial_lattice2_positions, &lattice2_positions);
+    free(initial_lattice2_positions);
+
     free(forces);
 }
 
 
-int main(void) {
+int main(int argc, char **argv) {
+    char *input_filename = argv[1];
+
+    long seed = (unsigned long) time(NULL);
+    init_genrand(seed);
+
+    double *initial_energies = malloc(sizeof(double) * 2);
+    double *lattice1_positions = malloc(sizeof(double) * 2);
+    double *lattice2_positions = malloc(sizeof(double) * 2);
+
+    lattice1_positions[0] = 0;
+    lattice1_positions[1] = 0;
+
+    lattice2_positions[0] = 100;
+    lattice2_positions[1] = 0;
+
+    initial_energies[0] = potential(lattice1_positions);
+    initial_energies[1] = potential(lattice2_positions);
+
+    Parameters params;
+
+    store_parameters(&params, input_filename, initial_energies);
+
+    calculate_energy_diff_range(lattice1_positions, lattice2_positions, &params);
+
+    printf("%lf %lf\n", params.minimum_energy_diff, params.maximum_energy_diff);
+
+
+
     return 0;
 }
