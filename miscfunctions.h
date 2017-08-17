@@ -64,6 +64,15 @@ void swap_arr_pointers(double **array1, double **array2) {
 }
 
 
+/* Copies the contents of the array original_arr into the array arr_to_be_filled */
+void copy_arr(double *original_arr, double *arr_to_be_filled, long arr_length) {
+    for (long index=0; index < arr_length; index++) {
+        arr_to_be_filled[index] = original_arr[index];
+    }
+
+}
+
+
 /* Finds the minimum value of two doubles */
 double min(double num1, double num2) {
     double return_val;
