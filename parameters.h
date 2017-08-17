@@ -61,6 +61,7 @@ struct Parameters {
     double bin_width; // Width of each bin in the histogram
     double energy_shift; // Amount to shift lattice 1 by to make its minimum energy equal to lattice 0
     double *normal_dist_arr; // Array of normally distributed numbers, length "no_dimensions", used in BAOAB steps
+    int current_lattice; // Gives the current lattice to which we are doing dynamics on
 };
 typedef struct Parameters Parameters;
 
@@ -102,6 +103,8 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
 
     params->normal_dist_arr = malloc(sizeof(double) * params->no_dimensions); // Ensure the seed has been set before this
     fill_arr_normal_dist(params->normal_dist_arr, params->no_dimensions); // Fills the array with normally distributed numbers
+
+    params->current_lattice = params->start_lattice;
 }
 
 
