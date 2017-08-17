@@ -64,4 +64,17 @@ void swap_arr_pointers(double **array1, double **array2) {
 }
 
 
+/* Finds the minimum value of two doubles */
+double min(double num1, double num2) {
+    double return_val;
+    if (num1 < num2) {
+        return_val = num1;
+    } else {
+        return_val = num2;
+    }
+
+    return return_val;
+}
+
+
 #endif //BAOAB_LATTICE_SWITCH_MISCFUNCTIONS_H
