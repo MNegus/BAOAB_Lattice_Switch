@@ -73,6 +73,14 @@ void copy_arr(double *original_arr, double *arr_to_be_filled, long arr_length) {
 }
 
 
+/* Fills an array of longs with zeros */
+void fill_arr_zeros(long *arr, long arr_length) {
+    for (long index = 0; index < arr_length; index++) {
+        arr[index] = 0;
+    }
+}
+
+
 /* Finds the minimum value of two doubles */
 double min(double num1, double num2) {
     double return_val;
@@ -85,5 +93,15 @@ double min(double num1, double num2) {
     return return_val;
 }
 
+
+/* Gaussian function with given width, height and mean */
+double gaussian(double position, double width, double mean, double height){
+    return height * exp(-(position - mean) * (position - mean) / width);
+}
+
+/* Derivative of a gaussian with given width, height and mean */
+double gaussian_deriv(double position, double width, double mean, double height){
+    return -2 * (position - mean) * gaussian(position, width, mean, height) / width;
+}
 
 #endif //BAOAB_LATTICE_SWITCH_MISCFUNCTIONS_H

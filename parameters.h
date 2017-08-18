@@ -17,6 +17,8 @@
  * maximum_energy_diff     = Maximum of the energy differences between the two lattices
  * no_bins                 = Number of bins in the histogram for recording the energy differences
  * flatness_threshold      = When every bin has greater than flatness_threshold * mean_of_bins of hits, the histogram is flat
+ * init_gauss_arrs_length  = Initial length of the arrays to store the heights and positions of the Gaussians, ideally this is
+ *                           large enough to not have to be increased
  * start_lattice           = Lattice to start the simulations in (either 0 or 1)
  * tot_timesteps           = Total number of timesteps to run the final simulation for
  *
@@ -51,6 +53,7 @@ struct Parameters {
     double maximum_energy_diff; // Maximum between the energy differences between the two lattices
     long no_bins; // Number of bins in histogram for recording energy differences
     double flatness_threshold; // When every bin has greater than flatness_threshold * mean_of_bins of hits, the histogram is "flat"
+    long init_gauss_arrs_length; // The initial length of the arrays to store the heights and positions of the Gaussians, ideally large enough to not need to increase
 
     // Parameters for final simulation, once biasing has been applied
     int start_lattice; // The lattice to start the dynamics in (either 0 or 1)
@@ -90,6 +93,7 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
     read_double(input_file, &params->maximum_energy_diff);
     read_long(input_file,   &params->no_bins);
     read_double(input_file, &params->flatness_threshold);
+    read_long(input_file,   &params->init_gauss_arrs_length);
 
     read_int(input_file,    &params->start_lattice);
     read_long(input_file,   &params->tot_timesteps);
