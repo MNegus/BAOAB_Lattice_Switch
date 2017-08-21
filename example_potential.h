@@ -24,10 +24,8 @@ double potential(double *positions) {
     return return_val;
 }
 
-/* Derivative of the example potential */
-void potential_deriv(double *deriv_arr, double *positions) {
-
-
+/* Fills an array with the derivatives of the example potential */
+void fill_potential_deriv(double *deriv_arr, double *positions) {
     if (positions[0] < 10) {
         deriv_arr[0] = 20 * positions[0];
         deriv_arr[1] = 2 * positions[1];
