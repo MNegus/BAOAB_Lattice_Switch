@@ -127,10 +127,10 @@ long get_bin_no(double position, long *hist, long no_bins, double min_pos, doubl
     long bin_no; // Variable to be returned
     if (position < min_pos) {
         // If the position is to the left of the first bin, then it belongs in bin 0
-        bin_no = 0;
+        bin_no = -1;
     } else if (position > max_pos) {
         // If the position is to the right of the last bin, then it belongs in the last bin
-        bin_no = no_bins - 1;
+        bin_no = -1;
     } else {
         // Loops over all bins until we find which it lies in, and then breaks the loop
         for (long j = 1; j <= no_bins; j++) {
@@ -148,7 +148,7 @@ long get_bin_no(double position, long *hist, long no_bins, double min_pos, doubl
 /* Given a position, adds to the bin it belongs in in a histogram */
 void add_to_histogram(double position, long *hist, long no_bins, double min_pos, double max_pos, double bin_width) {
     long bin_no = get_bin_no(position, hist, no_bins, min_pos, max_pos, bin_width);
-    hist[bin_no]++;
+    if (bin_no != -1) hist[bin_no]++;
 }
 
 
