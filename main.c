@@ -14,15 +14,18 @@ double get_unbiased_energy(double *positions, Parameters *params) {
 
 /* Difference in the energy between lattice 1 and lattice 2 */
 double energy_diff_one_to_two(double *lattice1_positions, double *lattice2_positions, Parameters *params) {
+    // Returns the difference in the unbiased energy in lattice 1 and lattice 2, minus the shift from lattice 2
     return get_unbiased_energy(lattice1_positions, params) - get_unbiased_energy(lattice2_positions, params) - params->energy_shift;
 }
 
 
 /* Relative energy difference between the current lattice and the other one */
-double relative_energy_diff(double *current_positions, double *other_positions, Parameters *params) {
+double relative_energy_diff(int current_lattice, double *current_positions, double *other_positions, Parameters *params) {
     double energy_diff;
-    if (params->current_lattice == 0) {
-        energy_diff = energy_diff_one_to_two(current_positions, other_positions, params);
+
+    // Determines which positions array belongs in which lattice, and determines the difference by calling energy_diff_one_to_two
+    if (current_lattice == 0) {
+        energy_diff = -energy_diff_one_to_two(current_positions, other_positions, params);
     } else {
         energy_diff = energy_diff_one_to_two(other_positions, current_positions, params);
     }
@@ -32,39 +35,74 @@ double relative_energy_diff(double *current_positions, double *other_positions, 
 
 
 /* Get the energy of the current lattice after biasing has been applied by the Gaussians */
-double biased_energy(double *lattice1_positions, double *lattice2_positions,
-                     double *gauss_heights, double *gauss_positions, long no_gaussians, Parameters *params) {
-    double *current_positions, *other_positions;
-    if (params->current_lattice == 0) {
+double get_biased_energy(int current_lattice, double *lattice1_positions, double *lattice2_positions,
+                         double *gauss_heights, double *gauss_positions, long no_gaussians, Parameters *params) {
+    // Determines which positions array points to the lattice we are currently in
+    double *current_positions;
+    if (current_lattice == 0) {
         current_positions = lattice1_positions;
-        other_positions   = lattice2_positions;
     } else {
         current_positions = lattice2_positions;
-        other_positions   = lattice1_positions;
     }
 
-    double bias_func_val = 0;
+    double bias_func_val = 0; // Value of the biasing function at the current position
 
-    double energy_diff = relative_energy_diff(current_positions, other_positions, params);
+    // Energy difference between lattice 1 and lattice 2
+    double energy_diff = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
 
+    // Adds contributions from all the Gaussians
     for (long gauss_no = 0; gauss_no < no_gaussians; gauss_no++) {
         bias_func_val += gaussian(energy_diff, params->gauss_width, gauss_positions[gauss_no], gauss_heights[gauss_no]);
     }
 
-    return params->temp * bias_func_val + get_unbiased_energy(current_positions, params);
+    double return_val = params->temp * bias_func_val + get_unbiased_energy(current_positions, params);
+
+    if (current_lattice == 1) return_val += params->energy_shift;
+
+    return return_val;
 }
 
 
 // NOT COMPLETED AT ALL
 /* Fills an array of forces with the forces on particles at given positions in a certain lattice */
 void get_unbiased_forces(double *forces, double *positions, Parameters *params) {
-    potential_deriv(forces, positions);
+    fill_potential_deriv(forces, positions);
 }
 
 
-void biased_forces(double *forces, double *lattice1_positions, double *lattice2_positions,
-                   double *gauss_heights, double *gauss_positions, long no_gaussians, Parameters *params) {
-    
+void get_biased_forces(int current_lattice, double *bias_forces, double *lattice1_positions, double *lattice2_positions,
+                       double *gauss_heights, double *gauss_positions, long no_gaussians, Parameters *params) {
+
+    fill_double_arr_zeros(bias_forces, params->no_dimensions); // Ensures the biased forces array is empty
+
+    // Finds forces on each lattice
+    double *lattice1_forces = malloc(sizeof(double) * params->no_dimensions);
+    get_unbiased_forces(lattice1_forces, lattice1_positions, params);
+
+    double *lattice2_forces = malloc(sizeof(double) * params->no_dimensions);
+    get_unbiased_forces(lattice2_forces, lattice2_positions, params);
+
+    // Determines which array points to forces in the current lattice
+    double *current_forces;
+    if (current_lattice == 0) {
+        current_forces = lattice1_forces;
+    } else {
+        current_forces = lattice2_forces;
+    }
+
+    // Energy difference between lattice 1 and lattice 2
+    double energy_diff = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+
+    // Loops over all dimensions and calculates the biased force
+    for (long d = 0; d < params->no_dimensions; d++) {
+        // Adds the contributions from the derivative of the Gaussians
+        for (long gauss_no = 0; gauss_no < no_gaussians; gauss_no++) {
+            bias_forces[d] += gaussian_deriv(energy_diff, params->gauss_width,
+                                             gauss_positions[gauss_no], gauss_heights[gauss_no]);
+        }
+        // Biased force is difference in forces multiplied by sum of Gaussians multiplied by temp, plus the unbiased force
+        bias_forces[d] = params->temp * (lattice1_forces[d] - lattice2_forces[d]) * bias_forces[d] + current_forces[d];
+    }
 }
 
 
@@ -89,16 +127,26 @@ void BAOAB_limit(double *lattice1_positions, double *lattice2_positions, double 
 
 
 /* Attempts a Monte-Carlo lattice switch from the current lattice to the other */
-void lattice_switch(double *lattice1_positions, double *lattice2_positions, Parameters *params) {
-    double energy_diff;
+void lattice_switch(double *lattice1_positions, double *lattice2_positions, double *gauss_heights, double *gauss_positions,
+                    long no_gaussians, Parameters *params) {
+    // Determines which lattice we are in
+    double *current_positions, *other_positions;
+    int other_lattice = (params->current_lattice + 1) % 2;
     if (params->current_lattice == 0) {
-        energy_diff = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+        current_positions = lattice1_positions;
+        other_positions   = lattice2_positions;
     } else {
-        energy_diff = -energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+        current_positions = lattice2_positions;
+        other_positions   = lattice1_positions;
     }
 
-    // Makes the lattice switch with probability min(1, exp(-energy_diff_one_to_two / temp)
-    if (genrand_real1() < exp(-energy_diff / params->temp)) {
+    double current_biased_energy = get_biased_energy(params->current_lattice, lattice1_positions, lattice2_positions,
+                                                     gauss_heights, gauss_positions, no_gaussians, params);
+    double other_biased_energy   = get_biased_energy(other_lattice, lattice1_positions, lattice2_positions,
+                                                     gauss_heights, gauss_positions, no_gaussians, params);
+
+    // Makes the lattice switch with probability min(1, exp(-relative_energy_diff / temp)
+    if (genrand_real1() < exp(-(other_biased_energy - current_biased_energy) / params->temp)) {
         params->current_lattice = (params->current_lattice + 1) % 2;  // Changes current_lattice
     }
 }
@@ -162,11 +210,17 @@ void calculate_energy_diff_range(double *lattice1_positions, double *lattice2_po
 }
 
 
-void implement_biasing(double *gauss_heights, double *gauss_positions,
+
+/* Implements the biasing, so that we have arrays of heights and positions of Gaussians in energy-difference space, placed
+ * such that all points in energy-difference space are equally likely to be visited */
+void implement_biasing(double *gauss_heights, double *gauss_positions, long *gauss_arrs_length,
                        double *lattice1_positions, double *lattice2_positions, Parameters *params) {
+    // Variable to store the unbiased energy difference between lattice 1 and lattice 2
+    double energy_diff = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+
     // Creates an empty histogram to record the energy differences we have visited
     long *energy_diff_histogram = malloc(sizeof(double) * params->no_bins);
-    fill_arr_zeros(energy_diff_histogram, params->no_bins);
+    fill_long_arr_zeros(energy_diff_histogram, params->no_bins);
 
     // Defines variable f, used to alter the height of the Gaussians
     double f = exp(params->initial_gauss_height / params->temp); // Initial value for f
@@ -174,18 +228,61 @@ void implement_biasing(double *gauss_heights, double *gauss_positions,
 
     long no_gaussians = 0; // Number of Gaussians that have currently been placed
 
+    double *bias_forces = malloc(sizeof(double) * params->no_dimensions); // Array for the bias forces on a particular lattice
+
+
+    // Decreases f until its at its minimum. At that point the Gaussians are sufficient for our biasing
     while (f > min_f) {
         int flat_histogram = 0; // Indicates if our histogram is flat (0 being not flat, 1 being flat)
 
+        // Adds Gaussians until our histogram becomes sufficiently flat
         while (flat_histogram == 0) {
 
+            // Performs a set number of BAOAB steps
+            for (long stepno = 0; stepno < params->steps_between_gaussians; stepno++) {
+                // Adds to the histogram with the current energy difference
+                add_to_histogram(energy_diff, energy_diff_histogram, params->no_bins, params->minimum_energy_diff,
+                                 params->maximum_energy_diff, params->bin_width);
+
+
+                // Attempts a lattice switch with set probability
+                if (genrand_real1() < params->prob_switch_attempt) {
+                    lattice_switch(lattice1_positions, lattice2_positions, gauss_heights, gauss_positions, no_gaussians, params);
+                } else {
+                    // Else, gets the biased forces on the current lattice and performs a BAOAB step
+                    get_biased_forces(params->current_lattice, bias_forces, lattice1_positions, lattice2_positions,
+                                      gauss_heights, gauss_positions, no_gaussians, params);
+                    BAOAB_limit(lattice1_positions, lattice2_positions, bias_forces, params);
+
+                    // Updates the energy difference (only done on BAOAB as the lattice switch does not change this)
+                    energy_diff = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+                }
+            }
+
+            // Places a Gaussian where we currently are
+            gauss_positions[no_gaussians] = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+            gauss_heights[no_gaussians] = params->temp * log(f);
+            no_gaussians++;
+
+            // If the number of Gaussians now exceeds the length of the height and position arrays, extend their length
+            if (no_gaussians > *gauss_arrs_length) {
+                long new_arrs_length = *gauss_arrs_length + params->init_gauss_arrs_length;
+                gauss_positions = extend_arr(gauss_positions, *gauss_arrs_length, new_arrs_length);
+                gauss_heights   = extend_arr(gauss_heights,   *gauss_arrs_length, new_arrs_length);
+                *gauss_arrs_length += params->init_gauss_arrs_length;
+            }
+
+
+            // Determines if the histogram is now flat or not
+            flat_histogram = is_histogram_flat(energy_diff_histogram, params->no_bins, params->flatness_threshold);
         }
+
+        f = sqrt(f); // Decrease f
+        fill_long_arr_zeros(energy_diff_histogram, params->no_bins); // Reset the histogram
     }
-
-
-
-
 }
+
+
 
 int main(int argc, char **argv) {
     char *input_filename = argv[1];
