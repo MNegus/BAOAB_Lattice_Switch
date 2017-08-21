@@ -73,8 +73,25 @@ void copy_arr(double *original_arr, double *arr_to_be_filled, long arr_length) {
 }
 
 
+/* "Extends" the length of an array by creating a new, longer array, and copying the contents from the old one into
+ * it, and then returning a pointer to the new one */
+double *extend_arr(double *current_arr, long current_arr_length, long new_arr_length) {
+    double *new_arr = malloc(sizeof(double) * new_arr_length); // New array
+    copy_arr(current_arr, new_arr, current_arr_length); // Copies contents from old to new
+    free(current_arr); // Frees the old array
+    return new_arr; // Return pointer to new array
+}
+
 /* Fills an array of longs with zeros */
-void fill_arr_zeros(long *arr, long arr_length) {
+void fill_long_arr_zeros(long *arr, long arr_length) {
+    for (long index = 0; index < arr_length; index++) {
+        arr[index] = 0;
+    }
+}
+
+
+/* Fills an array of doubles with zeros */
+void fill_double_arr_zeros(double *arr, long arr_length) {
     for (long index = 0; index < arr_length; index++) {
         arr[index] = 0;
     }
@@ -102,6 +119,61 @@ double gaussian(double position, double width, double mean, double height){
 /* Derivative of a gaussian with given width, height and mean */
 double gaussian_deriv(double position, double width, double mean, double height){
     return -2 * (position - mean) * gaussian(position, width, mean, height) / width;
+}
+
+
+/* Gets the number of the bin which a given position belongs in for a histogram */
+long get_bin_no(double position, long *hist, long no_bins, double min_pos, double max_pos, double bin_width) {
+    long bin_no; // Variable to be returned
+    if (position < min_pos) {
+        // If the position is to the left of the first bin, then it belongs in bin 0
+        bin_no = 0;
+    } else if (position > max_pos) {
+        // If the position is to the right of the last bin, then it belongs in the last bin
+        bin_no = no_bins - 1;
+    } else {
+        // Loops over all bins until we find which it lies in, and then breaks the loop
+        for (long j = 1; j <= no_bins; j++) {
+            if (position < min_pos + j * bin_width) {
+                bin_no = j - 1;
+                break;
+            }
+        }
+    }
+
+    return bin_no;
+}
+
+
+/* Given a position, adds to the bin it belongs in in a histogram */
+void add_to_histogram(double position, long *hist, long no_bins, double min_pos, double max_pos, double bin_width) {
+    long bin_no = get_bin_no(position, hist, no_bins, min_pos, max_pos, bin_width);
+    hist[bin_no]++;
+}
+
+
+/* Determines if a histogram is sufficiently "flat", meaning that all bins have a value greater than or
+ * equal to flatness_threshold * mean */
+int is_histogram_flat(long *hist, long no_bins, double flatness_threshold) {
+    // Calculates mean of the bin values
+    double mean = 0;
+    for (long bin_no = 0; bin_no < no_bins; bin_no++) {
+        mean += hist[bin_no];
+    }
+    mean /= no_bins;
+
+    int histogram_flat = 1; // If 1, then histogram flat. If 0, then it is not
+
+    /* Loops through all bins. If any bin has a value less than the required for flatness, we set histogram_flat
+     * to be zero and break out of the loop */
+    for (long bin_no = 0; bin_no < no_bins; bin_no++) {
+        if (hist[bin_no] < flatness_threshold * mean) {
+            histogram_flat = 0;
+            break;
+        }
+    }
+
+    return histogram_flat;
 }
 
 #endif //BAOAB_LATTICE_SWITCH_MISCFUNCTIONS_H
