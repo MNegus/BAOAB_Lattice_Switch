@@ -65,6 +65,10 @@ struct Parameters {
     double energy_shift; // Amount to shift lattice 1 by to make its minimum energy equal to lattice 0
     double *normal_dist_arr; // Array of normally distributed numbers, length "no_dimensions", used in BAOAB steps
     int current_lattice; // Gives the current lattice to which we are doing dynamics on
+    double *gauss_heights; // Array to store heights of the Gaussians
+    double *gauss_positions; // Array to store positions of the Gaussians
+    long no_gaussians; // Number of Gaussians that have been placed down
+    long gauss_arrs_length; // Length of the height and position arrays to store Gaussians
 };
 typedef struct Parameters Parameters;
 
@@ -109,12 +113,25 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
     fill_arr_normal_dist(params->normal_dist_arr, params->no_dimensions); // Fills the array with normally distributed numbers
 
     params->current_lattice = params->start_lattice;
+
+    // Initialises the arrays and longs associated with the biasing Gaussians
+    params->gauss_arrs_length = params->init_gauss_arrs_length;
+
+    params->gauss_heights = malloc(sizeof(double) * params->gauss_arrs_length);
+    fill_double_arr_zeros(params->gauss_heights, params->gauss_arrs_length);
+
+    params->gauss_positions = malloc(sizeof(double) * params->gauss_arrs_length);
+    fill_double_arr_zeros(params->gauss_positions, params->gauss_arrs_length);
+
+    params->no_gaussians = 0;
 }
 
 
 /* Frees all manually allocated memory used by a Parameters instance */
 void free_parameters(Parameters *params) {
     free(params->normal_dist_arr);
+    free(params->gauss_heights);
+    free(params->gauss_positions);
 }
 
 
