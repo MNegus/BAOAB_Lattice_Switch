@@ -2,11 +2,11 @@
 // Created by michael on 17/08/17.
 //
 
-#include "parameters.h"
 
 #ifndef BAOAB_LATTICE_SWITCH_EXAMPLE_POTENTIAL_H
 #define BAOAB_LATTICE_SWITCH_EXAMPLE_POTENTIAL_H
 
+#include <float.h>
 
 /* Example two dimensional potential */
 double potential(double *positions) {

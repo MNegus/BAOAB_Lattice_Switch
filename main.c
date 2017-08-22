@@ -235,6 +235,32 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
         // Adds Gaussians until our histogram becomes sufficiently flat
         while (flat_histogram == 0) {
             hist_attempt++;
+
+            if (hist_attempt == 3000) {
+                printf("In ere\n");
+                double x_min = -10;
+                double x_max = 10;
+                long no_points = 1000;
+                double dx = (x_max - x_min) / no_points;
+
+                double *left_pos = malloc(sizeof(double) * 2);
+                left_pos[1] = 0;
+
+                double *right_pos = malloc(sizeof(double) * 2);
+                right_pos[1] = 0;
+
+                FILE *biased_pot_file = fopen("biased_pot_file.txt", "w");
+                for (long i = 0; i < no_points; i++) {
+                    left_pos[0] = x_min + i * dx;
+                    right_pos[0] = x_min + 100 + i * dx;
+                    double bias_energy = get_biased_energy(0, left_pos, right_pos, params);
+                    fprintf(biased_pot_file, "%lf %lf %lf\n", x_min + i * dx, potential(left_pos), bias_energy);
+                }
+                fclose(biased_pot_file);
+
+                exit(0);
+            }
+
             if (hist_attempt % 1000 == 0) {
                 printf("%ld\n", hist_attempt);
 
@@ -349,6 +375,19 @@ int main(int argc, char **argv) {
     free(initial_energies);
 
     implement_biasing(lattice1_positions, lattice2_positions, &params);
+
+    FILE *potential_file = fopen("pot_file.txt", "w");
+    double x_min = -10;
+    double x_max = 132;
+    long num_points = 10000;
+    double dx = (x_max - x_min) / num_points;
+    double *pos = malloc(sizeof(double) * 2);
+    pos[1] = 0;
+    for (long i = 0; i < num_points; i++) {
+        pos[0] = x_min + i * dx;
+        fprintf(potential_file, "%lf %lf\n", x_min + i * dx, potential(pos));
+    }
+    fclose(potential_file);
 
 
     free(lattice1_positions);
