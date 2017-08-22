@@ -7,15 +7,21 @@
 
 // NOT COMPLETED AT ALL
 /* Gets the energy a configuration of positions has in a given lattice */
-double get_unbiased_energy(double *positions, Parameters *params) {
-    return potential(positions);
+double get_unbiased_energy(double *positions, int current_lattice) {
+    double return_val;
+    if (current_lattice == 0) {
+        return_val = potential_1(positions);
+    } else {
+        return_val = potential_2(positions);
+    }
+    return return_val;
 }
 
 
 /* Difference in the energy between lattice 1 and lattice 2 */
 double energy_diff_one_to_two(double *lattice1_positions, double *lattice2_positions, Parameters *params) {
     // Returns the difference in the unbiased energy in lattice 1 and lattice 2, minus the shift from lattice 2
-    return get_unbiased_energy(lattice1_positions, params) - get_unbiased_energy(lattice2_positions, params) - params->energy_shift;
+    return get_unbiased_energy(lattice1_positions, 0) - get_unbiased_energy(lattice2_positions, 1) - params->energy_shift;
 }
 
 
@@ -55,7 +61,7 @@ double get_biased_energy(int current_lattice, double *lattice1_positions, double
         bias_func_val += gaussian(energy_diff, params->gauss_width, params->gauss_positions[gauss_no], params->gauss_heights[gauss_no]);
     }
 
-    double return_val = params->temp * bias_func_val + get_unbiased_energy(current_positions, params);
+    double return_val = params->temp * bias_func_val + get_unbiased_energy(current_positions, current_lattice);
 
     if (current_lattice == 1) return_val += params->energy_shift;
 
@@ -65,8 +71,12 @@ double get_biased_energy(int current_lattice, double *lattice1_positions, double
 
 // NOT COMPLETED AT ALL
 /* Fills an array of forces with the forces on particles at given positions in a certain lattice */
-void get_unbiased_forces(double *forces, double *positions, Parameters *params) {
-    fill_potential_deriv(forces, positions);
+void get_unbiased_forces(double *forces, double *positions, int current_lattice) {
+    if (current_lattice == 0) {
+        fill_potential_1_deriv(forces, positions);
+    } else {
+        fill_potential_2_deriv(forces, positions);
+    }
 }
 
 
@@ -77,10 +87,10 @@ void get_biased_forces(int current_lattice, double *bias_forces, double *lattice
 
     // Finds forces on each lattice
     double *lattice1_forces = malloc(sizeof(double) * params->no_dimensions);
-    get_unbiased_forces(lattice1_forces, lattice1_positions, params);
+    get_unbiased_forces(lattice1_forces, lattice1_positions, 0);
 
     double *lattice2_forces = malloc(sizeof(double) * params->no_dimensions);
-    get_unbiased_forces(lattice2_forces, lattice2_positions, params);
+    get_unbiased_forces(lattice2_forces, lattice2_positions, 1);
 
     // Determines which array points to forces in the current lattice
     double *current_forces;
@@ -171,7 +181,7 @@ void calculate_energy_diff_range(double *lattice1_positions, double *lattice2_po
             params->maximum_energy_diff = current_energy_difference;
         }
 
-        get_unbiased_forces(forces, lattice1_positions, params); // Calculates forces from the first lattice
+        get_unbiased_forces(forces, lattice1_positions, 0); // Calculates forces from the first lattice
         BAOAB_limit(lattice1_positions, lattice2_positions, forces, params);
     }
 
@@ -189,7 +199,7 @@ void calculate_energy_diff_range(double *lattice1_positions, double *lattice2_po
         if (current_energy_difference > params->maximum_energy_diff) {
             params->maximum_energy_diff = current_energy_difference;
         }
-        get_unbiased_forces(forces, lattice2_positions, params);
+        get_unbiased_forces(forces, lattice2_positions, 1);
         BAOAB_limit(lattice2_positions, lattice1_positions, forces, params);
     }
 
@@ -230,13 +240,13 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
         long switch_no = 0;
         long no_left = 0;
 
-        FILE *everything_file = fopen("everything_output.txt", "w");
+        FILE *everything_file = fopen("everything_output.csv", "w");
 
         // Adds Gaussians until our histogram becomes sufficiently flat
         while (flat_histogram == 0) {
             hist_attempt++;
 
-            if (hist_attempt == 3000) {
+            if (hist_attempt == 10000) {
                 printf("In ere\n");
                 double x_min = -10;
                 double x_max = 10;
@@ -249,14 +259,30 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
                 double *right_pos = malloc(sizeof(double) * 2);
                 right_pos[1] = 0;
 
-                FILE *biased_pot_file = fopen("biased_pot_file.txt", "w");
+                FILE *left_pot_file = fopen("left_pot_file.txt", "w");
+                FILE *right_pot_file = fopen("right_pot_file.txt", "w");
                 for (long i = 0; i < no_points; i++) {
                     left_pos[0] = x_min + i * dx;
                     right_pos[0] = x_min + 100 + i * dx;
-                    double bias_energy = get_biased_energy(0, left_pos, right_pos, params);
-                    fprintf(biased_pot_file, "%lf %lf %lf\n", x_min + i * dx, potential(left_pos), bias_energy);
+                    double left_bias_energy = get_biased_energy(0, left_pos, right_pos, params);
+                    double right_bias_energy = get_biased_energy(1, left_pos, right_pos, params);
+                    fprintf(left_pot_file, "%lf %lf %lf\n", left_pos[0], get_unbiased_energy(left_pos, 0), left_bias_energy);
+                    fprintf(right_pot_file, "%lf %lf %lf\n", right_pos[0], get_unbiased_energy(right_pos, 1), right_bias_energy);
                 }
-                fclose(biased_pot_file);
+                fclose(left_pot_file);
+                fclose(right_pot_file);
+
+                FILE *bins_file = fopen("bins_output.txt", "w");
+                for (long bin_no = 0; bin_no < params->no_bins; bin_no++){
+                    fprintf(bins_file, "%ld %ld\n", bin_no, energy_diff_histogram[bin_no]);
+                }
+                fclose(bins_file);
+
+                FILE *gauss_file = fopen("gauss_output.txt", "w");
+                for (long gauss_no = 0; gauss_no < params->no_gaussians; gauss_no++) {
+                    fprintf(gauss_file, "%lf\n", params->gauss_positions[gauss_no]);
+                }
+                fclose(gauss_file);
 
                 exit(0);
             }
@@ -296,8 +322,9 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
 
             // Performs a set number of BAOAB steps
             for (long stepno = 0; stepno < params->steps_between_gaussians; stepno++) {
-                fprintf(everything_file, "%lf %lf %lf %lf %lf\n", lattice1_positions[0], lattice1_positions[1],
-                        lattice2_positions[0], lattice2_positions[1], energy_diff_one_to_two(lattice1_positions, lattice2_positions, params));
+                fprintf(everything_file, "%lf %lf %lf %lf %lf %d\n", lattice1_positions[0], lattice1_positions[1],
+                        lattice2_positions[0], lattice2_positions[1],
+                        energy_diff_one_to_two(lattice1_positions, lattice2_positions, params), params->current_lattice);
 
 
                 // Adds to the histogram with the current energy difference
@@ -366,8 +393,8 @@ int main(int argc, char **argv) {
     lattice2_positions[0] = 100;
     lattice2_positions[1] = 0;
 
-    initial_energies[0] = potential(lattice1_positions);
-    initial_energies[1] = potential(lattice2_positions);
+    initial_energies[0] = get_unbiased_energy(lattice1_positions, 0);
+    initial_energies[1] = get_unbiased_energy(lattice2_positions, 1);
 
     Parameters params;
 
@@ -375,20 +402,6 @@ int main(int argc, char **argv) {
     free(initial_energies);
 
     implement_biasing(lattice1_positions, lattice2_positions, &params);
-
-    FILE *potential_file = fopen("pot_file.txt", "w");
-    double x_min = -10;
-    double x_max = 132;
-    long num_points = 10000;
-    double dx = (x_max - x_min) / num_points;
-    double *pos = malloc(sizeof(double) * 2);
-    pos[1] = 0;
-    for (long i = 0; i < num_points; i++) {
-        pos[0] = x_min + i * dx;
-        fprintf(potential_file, "%lf %lf\n", x_min + i * dx, potential(pos));
-    }
-    fclose(potential_file);
-
 
     free(lattice1_positions);
     free(lattice2_positions);
