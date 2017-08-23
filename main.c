@@ -246,7 +246,7 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
         while (flat_histogram == 0) {
             hist_attempt++;
 
-            if (hist_attempt == 10000) {
+            if (hist_attempt == 100000) {
                 printf("In ere\n");
                 double x_min = -10;
                 double x_max = 10;
@@ -284,6 +284,7 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
                 }
                 fclose(gauss_file);
 
+                fclose(everything_file);
                 exit(0);
             }
 
@@ -294,30 +295,30 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
                 printf("Distance left from origin = %lf\n", dist1);
             }
 
-            if (hist_attempt % 10000 == 0) {
-                printf("Switch_no = %ld, Tot_timesteps = %ld\n", switch_no, tot_timesteps);
-                printf("No_left = %ld\n", no_left);
-                FILE *bins_file = fopen("bins_output.txt", "w");
-                for (long bin_no = 0; bin_no < params->no_bins; bin_no++){
-                    fprintf(bins_file, "%ld %ld\n", bin_no, energy_diff_histogram[bin_no]);
-                }
-                fclose(bins_file);
-
-                FILE *gauss_file = fopen("gauss_output.txt", "w");
-                for (long gauss_no = 0; gauss_no < params->no_gaussians; gauss_no++) {
-                    fprintf(gauss_file, "%lf\n", params->gauss_positions[gauss_no]);
-                }
-                fclose(gauss_file);
-
-                fclose(everything_file);
-
-                free(lattice1_positions);
-                free(lattice2_positions);
-                free(bias_forces);
-                free(energy_diff_histogram);
-                free_parameters(params);
-                exit(0);
-            }
+//            if (hist_attempt % 10000 == 0) {
+//                printf("Switch_no = %ld, Tot_timesteps = %ld\n", switch_no, tot_timesteps);
+//                printf("No_left = %ld\n", no_left);
+//                FILE *bins_file = fopen("bins_output.txt", "w");
+//                for (long bin_no = 0; bin_no < params->no_bins; bin_no++){
+//                    fprintf(bins_file, "%ld %ld\n", bin_no, energy_diff_histogram[bin_no]);
+//                }
+//                fclose(bins_file);
+//
+//                FILE *gauss_file = fopen("gauss_output.txt", "w");
+//                for (long gauss_no = 0; gauss_no < params->no_gaussians; gauss_no++) {
+//                    fprintf(gauss_file, "%lf\n", params->gauss_positions[gauss_no]);
+//                }
+//                fclose(gauss_file);
+//
+//                fclose(everything_file);
+//
+//                free(lattice1_positions);
+//                free(lattice2_positions);
+//                free(bias_forces);
+//                free(energy_diff_histogram);
+//                free_parameters(params);
+//                exit(0);
+//            }
 
 
             // Performs a set number of BAOAB steps
@@ -333,6 +334,8 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
 
                 tot_timesteps++;
                 if (params->current_lattice == 0) no_left++;
+
+
                 // Attempts a lattice switch with set probability
                 if (genrand_real1() < params->prob_switch_attempt) {
                     int temp = params->current_lattice;
@@ -350,7 +353,7 @@ void implement_biasing(double *lattice1_positions, double *lattice2_positions, P
             }
 
             // Places a Gaussian where we currently are
-            params->gauss_positions[params->no_gaussians] = energy_diff_one_to_two(lattice1_positions, lattice2_positions, params);
+            params->gauss_positions[params->no_gaussians] = energy_diff;
             params->gauss_heights[params->no_gaussians] = params->temp * log(f);
             params->no_gaussians++;
 
@@ -401,7 +404,7 @@ int main(int argc, char **argv) {
     store_parameters(&params, input_filename, initial_energies);
     free(initial_energies);
 
-    implement_biasing(lattice1_positions, lattice2_positions, &params);
+//    implement_biasing(lattice1_positions, lattice2_positions, &params);
 
     free(lattice1_positions);
     free(lattice2_positions);
