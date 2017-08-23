@@ -74,7 +74,7 @@ typedef struct Parameters Parameters;
 
 
 /* Reads required parameters from an input file and stores them in a given instance of Parameters */
-void store_parameters(Parameters *params, char *input_filename, double *initial_energies) {
+void store_parameters(Parameters *params, char *input_filename) {
     // Attempts to open the input file
     FILE *input_file = fopen(input_filename, "r");
     if (input_file == NULL) {
@@ -107,7 +107,6 @@ void store_parameters(Parameters *params, char *input_filename, double *initial_
 
     // Calculates derived parameters
     params->bin_width = (params->maximum_energy_diff - params->minimum_energy_diff) / params->no_bins;
-    params->energy_shift = initial_energies[0] - initial_energies[1]; // The amount lattice 1 has to be shifted
 
     params->normal_dist_arr = malloc(sizeof(double) * params->no_dimensions); // Ensure the seed has been set before this
     fill_arr_normal_dist(params->normal_dist_arr, params->no_dimensions); // Fills the array with normally distributed numbers
