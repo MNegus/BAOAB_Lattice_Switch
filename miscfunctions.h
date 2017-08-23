@@ -40,7 +40,7 @@ void read_int(FILE *input_file, int *int_value) {
 
 
 /* Returns a random normally distributed number, mean 0, standard deviation 1 */
-double box_muller_rand(){
+double box_muller_rand() {
     double r1 = genrand_real3();
     double r2 = genrand_real3();
     return sqrt(-2 * log(r1)) * cos(2 * PI * r2);
@@ -66,7 +66,7 @@ void swap_arr_pointers(double **array1, double **array2) {
 
 /* Copies the contents of the array original_arr into the array arr_to_be_filled */
 void copy_arr(double *original_arr, double *arr_to_be_filled, long arr_length) {
-    for (long index=0; index < arr_length; index++) {
+    for (long index = 0; index < arr_length; index++) {
         arr_to_be_filled[index] = original_arr[index];
     }
 
@@ -98,32 +98,20 @@ void fill_double_arr_zeros(double *arr, long arr_length) {
 }
 
 
-/* Finds the minimum value of two doubles */
-double min(double num1, double num2) {
-    double return_val;
-    if (num1 < num2) {
-        return_val = num1;
-    } else {
-        return_val = num2;
-    }
-
-    return return_val;
-}
-
-
 /* Gaussian function with given width, height and mean */
-double gaussian(double position, double width, double mean, double height){
+double gaussian(double position, double width, double mean, double height) {
     return height * exp(-(position - mean) * (position - mean) / width);
 }
 
+
 /* Derivative of a gaussian with given width, height and mean */
-double gaussian_deriv(double position, double width, double mean, double height){
+double gaussian_deriv(double position, double width, double mean, double height) {
     return -2 * (position - mean) * gaussian(position, width, mean, height) / width;
 }
 
 
 /* Gets the number of the bin which a given position belongs in for a histogram */
-long get_bin_no(double position, long *hist, long no_bins, double min_pos, double max_pos, double bin_width) {
+long get_bin_no(double position, long no_bins, double min_pos, double max_pos, double bin_width) {
     long bin_no; // Variable to be returned
     if (position < min_pos) {
         // If the position is to the left of the first bin, then it belongs in bin 0
@@ -147,7 +135,7 @@ long get_bin_no(double position, long *hist, long no_bins, double min_pos, doubl
 
 /* Given a position, adds to the bin it belongs in in a histogram */
 void add_to_histogram(double position, long *hist, long no_bins, double min_pos, double max_pos, double bin_width) {
-    long bin_no = get_bin_no(position, hist, no_bins, min_pos, max_pos, bin_width);
+    long bin_no = get_bin_no(position, no_bins, min_pos, max_pos, bin_width);
     if (bin_no != -1) hist[bin_no]++;
 }
 
